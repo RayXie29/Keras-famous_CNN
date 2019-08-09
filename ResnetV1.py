@@ -188,9 +188,3 @@ class resnetv1_builder:
         res_model = Model(inputs = [input_x], outputs = [output_x])
 
         return res_model
-
-import sys
-import tensorflow as tf
-print(keras.__version__)
-print(sys.version)
-print(tf.__version__)
