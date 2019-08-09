@@ -1,7 +1,8 @@
 # Keras-CNN 
 ## This repo is the implementation of several famous neural network
-**Now include 1. ResNet v1 2. ResNet v2** 
-<br />
+**Now include :**<br />
+**1. ResNet v1** <br /> 
+**2. ResNet v2** <br />
 <br />
 <br />
 ## Environment
