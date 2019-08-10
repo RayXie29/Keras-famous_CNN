@@ -21,6 +21,9 @@ class Inceptionv1_builder():
         :param initializer: weight/parameters initializer for all convolution & fc layers in whole NN
         :param init_maxpooling: Do the maxpooling after first two convolution layers or not
         '''
+
+        assert len(input_shape) == 3, "input shape should be dim 3 ( row, col, channel or channel row col )"
+
         self.input_shape = input_shape
         self.output_units = output_units
         self.init_kernel = init_kernel
@@ -91,12 +94,12 @@ class Inceptionv1_builder():
         A function for building inception block, including 1x1 convolution layer, 3x3 convolution layer with dimension reducing,
         5x5 convolution layer with dimension reducing and maxpooling layer with dimension reducing
 
-        :param _1x1: filter number for 1x1 convolution layer
-        :param _3x3r: filter number for dimension reducing layer of 3x3 convolution layer
-        :param _3x3: filter number for 3x3 convolution layer
-        :param _5x5r: filter number for dimension reducing layer of 5x5 convolution layer
-        :param _5x5: filter number for 5x5 convolution layer
-        :param _maxpool: filter number for dimension reducing layer of maxpooling layer
+        :param _1x1: filter number of 1x1 convolution layer
+        :param _3x3r: filter number of dimension reducing layer for 3x3 convolution layer
+        :param _3x3: filter number of 3x3 convolution layer
+        :param _5x5r: filter number of dimension reducing layer for 5x5 convolution layer
+        :param _5x5: filter number of 5x5 convolution layer
+        :param _maxpool: filter number of dimension reducing layer for maxpooling layer
         :return: A concatenate block of several scale convolution which is inception block
         '''
         def f(input_x):
@@ -124,8 +127,8 @@ class Inceptionv1_builder():
     def build_inception(self):
 
         '''
-        Main function for building inception nn
-        :return: An inception nn
+        Main function for building inceptionV1 nn
+        :return: An inceptionV1 nn
         '''
 
         #Few traditional convolutional layers at lower layers
