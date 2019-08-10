@@ -1,6 +1,6 @@
 import keras
 from keras.layers import Conv2D, MaxPooling2D, AveragePooling2D
-from keras.layers import Dense, BatchNormalization, Activation
+from keras.layers import Dense, Activation
 from keras.layers import Flatten, Input, Dropout, concatenate
 from keras.regularizers import  l2
 from keras import backend as K
@@ -46,23 +46,19 @@ class Inceptionv1_builder():
             self.channel_axis = 1
 
 
-    def _cn_bn_relu(self, filters = 64, kernel_size = (3,3), strides = (1,1), padding = "same",
-                    kernel_regularizer = l2(1e-4), kernel_initializer = "he_normal"):
+    def _cn_relu(self, filters = 64, kernel_size = (3,3), strides = (1,1), padding = "same"):
         '''
-        convenient function to build convolution -> batch_nromalization -> relu activation layers
+        convenient function to build convolution(with regularizer and initializer) -> relu activation layers
         '''
         def f(input_x):
 
-            x = Conv2D(filters = filters, kernel_size = kernel_size, strides = strides, padding = padding,
-                       kernel_initializer = kernel_initializer, kernel_regularizer = kernel_regularizer)(input_x)
-            x = BatchNormalization(axis=self.channel_axis)(x)
-            x = Activation("relu")(x)
-
+            x = Conv2D(filters = filters, kernel_size = kernel_size, strides = strides, padding = padding,activation="relu",
+                       kernel_initializer = self.initializer , kernel_regularizer = self.regularizer)(input_x)
             return x
 
         return f
 
-    def _auxiliary(self):
+    def _auxiliary(self, name = "auxiliary_1"):
         '''
         In author's explanation:
 
@@ -75,16 +71,12 @@ class Inceptionv1_builder():
 
             x = input_x
             x = AveragePooling2D(pool_size=(5,5), strides = (3,3), padding = "same")(x)
-            x = self._cn_bn_relu(filters = 128, kernel_size = (1,1), padding = "same",
-                                 kernel_regularizer = self.regularizer, kernel_initializer = self.initializer)(x)
+            x = self._cn_relu(filters = 128, kernel_size = (1,1), padding = "same")(x)
             x = Flatten()(x)
-            x = Dense(units = 1024)(x)
-            x = BatchNormalization(axis = self.channel_axis)(x)
-            x = Activation("relu")(x)
+            x = Dense(units = 1024, activation = "relu", kernel_regularizer= self.regularizer)(x)
             x = Dropout(0.7)(x)
 
-            output = Dense(units = self.output_units, activation = '"softmax', kernel_initializer = self.initializer)(x)
-            return output
+            return Dense(units = self.output_units, activation = "softmax", kernel_initializer=self.initializer, name = name)(x)
 
         return f
 
@@ -104,22 +96,16 @@ class Inceptionv1_builder():
         '''
         def f(input_x):
 
-            branch1x1 = self._cn_bn_relu(filters=_1x1, kernel_size=(1, 1), strides=(1, 1), padding="same",
-                                         kernel_regularizer= self.regularizer, kernel_initializer=self.initializer)(input_x)
+            branch1x1 = self._cn_relu(filters=_1x1, kernel_size=(1, 1), strides=(1, 1), padding="same")(input_x)
 
-            branch3x3 = self._cn_bn_relu(filters=_3x3r, kernel_size=(1, 1), strides=(1, 1), padding="same",
-                                         kernel_regularizer=self.regularizer, kernel_initializer=self.initializer)(input_x)
-            branch3x3 = self._cn_bn_relu(filters=_3x3, kernel_size=(3, 3), strides=(1, 1), padding="same",
-                                         kernel_regularizer=self.regularizer, kernel_initializer=self.initializer)(branch3x3)
+            branch3x3 = self._cn_relu(filters=_3x3r, kernel_size=(1, 1), strides=(1, 1), padding="same")(input_x)
+            branch3x3 = self._cn_relu(filters=_3x3, kernel_size=(3, 3), strides=(1, 1), padding="same")(branch3x3)
 
-            branch5x5 = self._cn_bn_relu(filters=_5x5r, kernel_size=(1, 1), strides=(1, 1), padding="same",
-                                         kernel_regularizer=self.regularizer, kernel_initializer=self.initializer)(input_x)
-            branch5x5 = self._cn_bn_relu(filters=_5x5, kernel_size=(5, 5), strides=(1, 1), padding="same",
-                                         kernel_regularizer=self.regularizer, kernel_initializer=self.initializer)(branch5x5)
+            branch5x5 = self._cn_relu(filters=_5x5r, kernel_size=(1, 1), strides=(1, 1), padding="same")(input_x)
+            branch5x5 = self._cn_relu(filters=_5x5, kernel_size=(5, 5), strides=(1, 1), padding="same",)(branch5x5)
 
             brancemaxpool = MaxPooling2D(pool_size = (3,3), strides = (1,1), padding = "same")(input_x)
-            brancemaxpool = self._cn_bn_relu(filters=_maxpool, kernel_size=(1, 1), strides=(1, 1), padding="same",
-                                         kernel_regularizer=self.regularizer, kernel_initializer=self.initializer)(brancemaxpool)
+            brancemaxpool = self._cn_relu(filters=_maxpool, kernel_size=(1, 1), strides=(1, 1), padding="same")(brancemaxpool)
 
             return concatenate([branch1x1,branch3x3,branch5x5,brancemaxpool], axis = self.channel_axis)
 
@@ -133,21 +119,17 @@ class Inceptionv1_builder():
 
         #Few traditional convolutional layers at lower layers
         input_x = Input(self.input_shape)
-        x = self._cn_bn_relu(filters = self.init_filters, kernel_size = self.init_kernel, strides = self.init_strides,
-                             kernel_regularizer = self.regularizer, kernel_initializer = self.initializer)(input_x)
+
+        x = self._cn_relu(filters = self.init_filters, kernel_size = self.init_kernel, strides = self.init_strides, padding = "same")(input_x)
 
         if self.init_maxpooling:
             x = MaxPooling2D(pool_size = (3,3), strides = (2,2), padding = "same")(x)
 
-        x = self._cn_bn_relu(filters = 64, kernel_size = (1,1), strides = (1,1), padding = "same",
-                             kernel_regularizer = self.regularizer, kernel_initializer = self.initializer)(x)
-        x = self._cn_bn_relu(filters = 192, kernel_size = (3,3), strides = (1, 1), padding = "same",
-                             kernel_regularizer = self.regularizer, kernel_initializer = self.initializer)(x)
+        x = self._cn_relu(filters = 64, kernel_size = (1,1), strides = (1,1), padding = "same")(x)
+        x = self._cn_relu(filters = 192, kernel_size = (3,3), strides = (1, 1), padding = "same")(x)
 
         if self.init_maxpooling:
-            x = MaxPooling2D(pool_size = (2,2), strides = (2,2), padding = "same")(x)
-
-
+            x = MaxPooling2D(pool_size = (3,3), strides = (2,2), padding = "same")(x)
 
         #inception(3a)
         x = self._inception_block(_1x1=64, _3x3r=96, _3x3=128, _5x5r=16, _5x5=32, _maxpool=32)(x)
@@ -161,7 +143,7 @@ class Inceptionv1_builder():
         x = self._inception_block(_1x1=192, _3x3r=96, _3x3=208, _5x5r=16, _5x5=48, _maxpool=64)(x)
 
         #auxiliary classifier 1
-        auxiliary1 = self._auxiliary()(x)
+        auxiliary1 = self._auxiliary(name = "auxiliary_1")(x)
 
         # inception(4b)
         x = self._inception_block(_1x1=160, _3x3r=112, _3x3=224, _5x5r=24, _5x5=64, _maxpool=64)(x)
@@ -171,7 +153,7 @@ class Inceptionv1_builder():
         x = self._inception_block(_1x1=112, _3x3r=144, _3x3=288, _5x5r=32, _5x5=64, _maxpool=64)(x)
 
         #auxiliary classifier 2
-        auxiliary2 = self._auxiliary()(x)
+        auxiliary2 = self._auxiliary(name = "auxiliary_2")(x)
 
         # inception(4e)
         x = self._inception_block(_1x1=256, _3x3r=160, _3x3=320, _5x5r=32, _5x5=128, _maxpool=128)(x)
@@ -185,11 +167,10 @@ class Inceptionv1_builder():
 
         x_shape = K.int_shape(x)
         x = AveragePooling2D(pool_size = (x_shape[self.row_axis], x_shape[self.col_axis]), strides=(1,1))(x)
+        x = Flatten()(x)
         x = Dropout(0.4)(x)
-        x = Dense(units = 1000, kernel_initializer = self.initializer)(x)
-        x = BatchNormalization(axis = self.channel_axis)(x)
-        x = Activation("relu")(x)
-        output_x = Dense(units = self.output_units, activation = "softmax", kernel_initializer=self.initializer)(x)
+        x = Dense(units = 1000, kernel_initializer = self.initializer, activation="relu")(x)
+        output_x = Dense(units = self.output_units, activation = "softmax", kernel_initializer=self.initializer, name = "main_output")(x)
 
         inceptionv1_model = Model(inputs = [input_x], outputs = [auxiliary1, auxiliary2, output_x])
 
