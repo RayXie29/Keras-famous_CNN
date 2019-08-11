@@ -81,7 +81,7 @@ class Inceptionv3_builder():
         return f
 
 
-    def _inception_block35x35(self,_1x1 = 64, _3x3r = 48, _3x3 = 64, _d3x3r = 64, _d3x3 = 96, _pool = 64):
+    def _inception_block35x35(self,_1x1 = 64, _3x3r = 48, _3x3 = 64, _d3x3r = 64, _d3x3 = 96, _pool = 64, name = "inception_fig5_1"):
         '''
         A function for building inception block of figure5 in original article,
         '''
@@ -99,7 +99,7 @@ class Inceptionv3_builder():
             dbranch3x3 = self._cn_bn_relu(filters = _d3x3, kernel_size = (3,3))(dbranch3x3)
             dbranch3x3 = self._cn_bn_relu(filters = _d3x3, kernel_size = (3,3))(dbranch3x3)
 
-            return concatenate([branch1x1, branchpooling, branch3x3, dbranch3x3], axis = self.channel_axis)
+            return concatenate([branch1x1, branchpooling, branch3x3, dbranch3x3], axis = self.channel_axis, name = name)
 
         return f
 
@@ -122,7 +122,7 @@ class Inceptionv3_builder():
 
         return f
 
-    def _inception_block17x17(self, _1x1 = 192, _7x7r = 128, _7x7 = 192, _d7x7r = 128, _d7x7 = 192, _pool = 192):
+    def _inception_block17x17(self, _1x1 = 192, _7x7r = 128, _7x7 = 192, _d7x7r = 128, _d7x7 = 192, _pool = 192, name = "inception_fig6_1"):
         '''
         A function for building inception block of figure6 in original article,
         '''
@@ -147,7 +147,7 @@ class Inceptionv3_builder():
                     dbranch7x7 = self._cn_bn_relu(filters=_d7x7, kernel_size=(1, 7))(branch7x7)
 
 
-            return concatenate([branch1x1, branchpooling, branch7x7, dbranch7x7], axis = self.channel_axis)
+            return concatenate([branch1x1, branchpooling, branch7x7, dbranch7x7], axis = self.channel_axis, name = name)
 
         return f
 
@@ -172,7 +172,7 @@ class Inceptionv3_builder():
 
         return f
 
-    def _inception_block8x8(self, _1x1 = 320, _pool = 192, _3x3r = 384, _3x3 = 384, _d3x3r = 448, _d3x3 = 384):
+    def _inception_block8x8(self, _1x1 = 320, _pool = 192, _3x3r = 384, _3x3 = 384, _d3x3r = 448, _d3x3 = 384, name = "inception_fig7_1"):
         '''
         A function for building inception block of figure7 in original article,
         '''
@@ -193,7 +193,7 @@ class Inceptionv3_builder():
             dbranch3x3_1 = self._cn_bn_relu(filters = _d3x3, kernel_size = (3,1))(dbranch3x3)
             dbranch3x3_2 = self._cn_bn_relu(filters = _d3x3, kernel_size = (1,3))(dbranch3x3)
 
-            return concatenate([branch1x1, branchpool, branch3x3_1, branch3x3_2, dbranch3x3_1, dbranch3x3_2], axis = self.channel_axis)
+            return concatenate([branch1x1, branchpool, branch3x3_1, branch3x3_2, dbranch3x3_1, dbranch3x3_2], axis = self.channel_axis, name = name)
 
         return f
 
@@ -223,14 +223,14 @@ class Inceptionv3_builder():
 
         #First 3 inception block, which are using architecture of figure5 in original article
         for i in range(3):
-            x = self._inception_block35x35(_1x1=64,_3x3r=48,_3x3=64,_d3x3r=64,_d3x3=96)(x)
+            x = self._inception_block35x35(_1x1=64,_3x3r=48,_3x3=64,_d3x3r=64,_d3x3=96, name = "inception_fig5_"+str(i+1))(x)
 
         #Dimension reducing #1 (from 35x35 -> 17x17 in original article)
-        x = self._GridSizeReduction35x35(_3x3r=288, _3x3=184,_d3x3r=64,_d3x3=96)(x)
+        x = self._GridSizeReduction35x35( _3x3r = 288, _3x3 = 384, _d3x3r = 64, _d3x3 = 96)(x)
 
         # 5 inception block, which are using architecture of figure6 in original article
         for i in range(5):
-            x = self._inception_block17x17(_1x1=192,_7x7r=128,_7x7=192,_d7x7r=128,_d7x7=192,_pool=192)(x)
+            x = self._inception_block17x17(_1x1=192,_7x7r=128,_7x7=192,_d7x7r=128,_d7x7=192,_pool=192, name = "inception_fig6_"+str(i+1))(x)
 
         # auxiliary classifier
         auxiliary = self._auxiliary(name = "auxiliary_1")(x)
@@ -239,7 +239,7 @@ class Inceptionv3_builder():
         x = self._GridSizeReduction17x17(_3x3r=192,_3x3=320,_d7x7x3r=192,_d7x7x3=192)(x)
 
         for i in range(2):
-            x = self._inception_block8x8(_1x1 = 320, _pool = 192, _3x3r = 384, _3x3 = 384, _d3x3r = 448, _d3x3 = 384)(x)
+            x = self._inception_block8x8(_1x1 = 320, _pool = 192, _3x3r = 384, _3x3 = 384, _d3x3r = 448, _d3x3 = 384, name = "inception_fig7_"+str(i+1))(x)
 
         x_shape = K.int_shape(x)
 

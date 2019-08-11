@@ -89,7 +89,8 @@ class Inceptionv2_builder():
         return f
 
 
-    def _inception_block(self, _1x1 = 64, _3x3r = 96, _3x3 = 128, _d3x3r = 16, _d3x3 = 32, _pool = 32, strides = (1,1), pooling = "avg"):
+    def _inception_block(self, _1x1 = 64, _3x3r = 96, _3x3 = 128, _d3x3r = 16, _d3x3 = 32,
+                         _pool = 32, strides = (1,1), pooling = "avg", name = "inception3a"):
         '''
         A function for building inception block, including 1x1 convolution layer, 3x3 convolution layer with dimension reducing,
         double 3x3 convolution layers with dimension reducing and maxpooling layer with dimension reducing
@@ -130,11 +131,12 @@ class Inceptionv2_builder():
                 brancemaxpool = MaxPooling2D(pool_size=(3,3), strides = strides, padding = "same")(input_x)
 
             if _1x1 > 0:
-                return concatenate([branch1x1, branch3x3, dbranch3x3, brancemaxpool], axis=self.channel_axis)
+                return concatenate([branch1x1, branch3x3, dbranch3x3, brancemaxpool], axis=self.channel_axis, name = name)
             else :
-                return concatenate([branch3x3, dbranch3x3, brancemaxpool], axis=self.channel_axis)
+                return concatenate([branch3x3, dbranch3x3, brancemaxpool], axis=self.channel_axis, name = name)
 
         return f
+
     def build_inception(self):
 
         '''
@@ -150,8 +152,6 @@ class Inceptionv2_builder():
         if self.init_maxpooling:
             x = MaxPooling2D(pool_size = (3,3), strides = (2,2), padding = "same")(x)
 
-        x = self._cn_bn_relu(filters = 64, kernel_size = (1,1), strides = (1,1), padding = "same",
-                             kernel_regularizer = self.regularizer, kernel_initializer = self.initializer)(x)
         x = self._cn_bn_relu(filters = 192, kernel_size = (3,3), strides = (1, 1), padding = "same",
                              kernel_regularizer = self.regularizer, kernel_initializer = self.initializer)(x)
 
@@ -161,37 +161,39 @@ class Inceptionv2_builder():
 
 
         #inception(3a)
-        x = self._inception_block(_1x1=64, _3x3r=64, _3x3=64, _d3x3r=64, _d3x3=96, _pool=32)(x)
+        x = self._inception_block(_1x1=64, _3x3r=64, _3x3=64, _d3x3r=64, _d3x3=96, _pool=32, name = "inception3a")(x)
 
         #inception(3b)
-        x = self._inception_block(_1x1=64, _3x3r=64, _3x3=96, _d3x3r=64, _d3x3=96, _pool=64)(x)
+        x = self._inception_block(_1x1=64, _3x3r=64, _3x3=96, _d3x3r=64, _d3x3=96, _pool=64, name = "inception3b")(x)
 
         #inception(3c)
-        x = self._inception_block(_1x1=0, _3x3r=128, _3x3=160, _d3x3r=64, _d3x3=96,_pool=0,strides=(2,2),pooling="max")(x)
+        x = self._inception_block(_1x1=0, _3x3r=128, _3x3=160, _d3x3r=64, _d3x3=96,_pool=0,
+                                  name = "inception3c", strides=(2,2),pooling="max")(x)
 
         #inception(4a)
-        x = self._inception_block(_1x1=224, _3x3r=64, _3x3=96, _d3x3r=96, _d3x3=128, _pool=128)(x)
+        x = self._inception_block(_1x1=224, _3x3r=64, _3x3=96, _d3x3r=96, _d3x3=128, _pool=128, name = "inception4a")(x)
 
         #auxiliary classifier 1
         auxiliary1 = self._auxiliary(name = "auxiliary_1")(x)
 
         # inception(4b)
-        x = self._inception_block(_1x1=192, _3x3r=96, _3x3=128, _d3x3r=96, _d3x3=128, _pool=128)(x)
+        x = self._inception_block(_1x1=192, _3x3r=96, _3x3=128, _d3x3r=96, _d3x3=128, _pool=128, name = "inception4b")(x)
         # inception(4c)
-        x = self._inception_block(_1x1=160, _3x3r=128, _3x3=160, _d3x3r=128, _d3x3=160, _pool=128)(x)
+        x = self._inception_block(_1x1=160, _3x3r=96, _3x3=128, _d3x3r=128, _d3x3=160, _pool=128, name = "inception4c")(x)
         # inception(4d)
-        x = self._inception_block(_1x1=96, _3x3r=128, _3x3=192, _d3x3r=160, _d3x3=192, _pool=128)(x)
+        x = self._inception_block(_1x1=96, _3x3r=128, _3x3=160, _d3x3r=160, _d3x3=192, _pool=128, name = "inception4d")(x)
 
         #auxiliary classifier 2
         auxiliary2 = self._auxiliary(name = "auxiliary_2")(x)
 
         # inception(4e)
-        x = self._inception_block(_1x1=0, _3x3r=128, _3x3=192, _d3x3r=192, _d3x3=256, _pool=0, strides = (2,2), pooling = "max")(x)
+        x = self._inception_block(_1x1=0, _3x3r=128, _3x3=192, _d3x3r=192, _d3x3=256, _pool=0,
+                                  name = "inception4e", strides = (2,2), pooling = "max")(x)
 
         #inception(5a)
-        x = self._inception_block(_1x1=352, _3x3r=192, _3x3=320, _d3x3r=160, _d3x3=224, _pool=128)(x)
+        x = self._inception_block(_1x1=352, _3x3r=192, _3x3=320, _d3x3r=160, _d3x3=224, _pool=128, name = "inception5a")(x)
         #inception(5b)
-        x = self._inception_block(_1x1=352, _3x3r=192, _3x3=320, _d3x3r=192, _d3x3=224, _pool=128)(x)
+        x = self._inception_block(_1x1=352, _3x3r=192, _3x3=320, _d3x3r=192, _d3x3=224, _pool=128, name = "inception5b")(x)
 
         x_shape = K.int_shape(x)
         x = AveragePooling2D(pool_size = (x_shape[self.row_axis], x_shape[self.col_axis]), strides=(1,1))(x)
