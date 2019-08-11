@@ -1,5 +1,5 @@
 # Keras-CNN 
-**This repo is the implementation of several famous convolution neural networks**<br />
+**This repo is the implementation of several famous convolution neural networks by Keras**<br />
 <br />
 <br />
 **Now include :**<br /><br />
